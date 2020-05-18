@@ -30,6 +30,10 @@ exports.scrape = async (page, input) => {
         const url = `https://www.youtube.com${href}`
         const id = utils.getVideoId(href)
 
+        const thumbnailUrl = await video.$eval('#img', el => el.getAttribute("src"))
+        // const screenshotBuffer = await thumbnail.screenshot();
+        // await Apify.setValue(id, screenshotBuffer, { contentType: 'image/png' });
+
         const duration = await video.$eval('span.ytd-thumbnail-overlay-time-status-renderer', el => el.textContent.trim());
         const metadataInfo = await video.$eval('#metadata-line', el => el.textContent.trim())
         if (!metadataInfo) continue
@@ -43,7 +47,7 @@ exports.scrape = async (page, input) => {
         console.log({ metadata })
 
         views = utils.unformatNumbers(views)
-        videos.push({ title, url, id, duration, views, uploadDate })
+        videos.push({ title, url, thumbnailUrl, id, duration, views, uploadDate })
     }
     await Apify.pushData(videos)
 };
