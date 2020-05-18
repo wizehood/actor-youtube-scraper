@@ -1,7 +1,6 @@
 const Apify = require('apify');
-
-const utils = require('./utility');
-const crawler = require('./crawler_utils');
+const utils = require('./utils');
+const scraper = require('./scraper');
 
 const { log } = Apify.utils;
 
@@ -19,41 +18,31 @@ Apify.main(async () => {
     const proxyConfig = { useApifyProxy: true, ...input.proxyConfiguration };
 
     // launch options - puppeteer
-    const pptrLaunchOpts = { ...proxyConfig };
-    pptrLaunchOpts.stealth = true;
-    pptrLaunchOpts.useChrome = true;
+    const launchOptions = { ...proxyConfig };
+    launchOptions.stealth = true;
+    launchOptions.useChrome = true;
 
     const requestQueue = await Apify.openRequestQueue();
 
-    // crawler options - puppeteer
-    const pptrCrawlerOpts = {};
-    pptrCrawlerOpts.requestQueue = requestQueue;
-    pptrCrawlerOpts.launchPuppeteerOptions = pptrLaunchOpts;
+    // scraper options - puppeteer
+    const scraperOptions = {};
+    scraperOptions.requestQueue = requestQueue;
+    scraperOptions.launchPuppeteerOptions = launchOptions;
 
-    pptrCrawlerOpts.launchPuppeteerFunction = crawler.hndlPptLnch;
-    pptrCrawlerOpts.gotoFunction = crawler.hndlPptGoto;
-    pptrCrawlerOpts.handleFailedRequestFunction = crawler.hndlFaildReqs;
-    pptrCrawlerOpts.handlePageFunction = async ({ page, request }) => {
+    scraperOptions.launchPuppeteerFunction = scraper.handleLaunch;
+    scraperOptions.gotoFunction = scraper.handleGoto;
+    scraperOptions.handleFailedRequestFunction = scraper.handleFails;
+    scraperOptions.handlePageFunction = async ({ page, request }) => {
         if (utils.isErrorStatusCode(request.statusCode)) {
             throw new Error(`Request error status code: ${request.statusCode} msg: ${request.statusMessage}`);
         }
 
-        switch (request.userData.label) {
-            case 'MASTER': {
-                await crawler.handleMaster(page, requestQueue, input);
-                break;
-            }
-            case 'DETAIL': {
-                await crawler.handleDetail(page, request);
-                break;
-            }
-            default: throw new Error('Unknown request label in handlePageFunction');
-        }
+        await scraper.scrape(page, input)
     };
 
     // add starting url
-    await requestQueue.addRequest({ url: startUrl + input.searchKeywords, userData: { label: 'MASTER' } });
+    await requestQueue.addRequest({ url: startUrl + input.searchKeywords });
 
-    const pptrCrawler = new Apify.PuppeteerCrawler(pptrCrawlerOpts);
-    await pptrCrawler.run();
+    const crawler = new Apify.PuppeteerCrawler(scraperOptions);
+    await crawler.run();
 });
