@@ -30,7 +30,7 @@ exports.scrape = async (page, input) => {
         const url = `https://www.youtube.com${href}`
         const id = utils.getVideoId(href)
 
-        const thumbnailUrl = await video.$eval('#img', el => el.getAttribute("src"))
+        const thumbnailUrl = await video.$eval('#img', el => el.src)
         // const screenshotBuffer = await thumbnail.screenshot();
         // await Apify.setValue(id, screenshotBuffer, { contentType: 'image/png' });
 
