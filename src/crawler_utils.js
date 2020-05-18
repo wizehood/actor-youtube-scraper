@@ -71,19 +71,30 @@ exports.handleMaster = async (page, requestQueue, input) => {
         throw new Error(`The keywords '${input.searchKeywords} return no youtube videos, try a different search`);
     }
 
+    console.log("VIDEO length: " + queuedVideos.length)
+    // await page.waitFor(10000)
+
+    let videos = []
     for (const video of queuedVideos) {
         const title = await video.$eval('yt-formatted-string', el => el.textContent);
         const duration = await video.$eval('span.ytd-thumbnail-overlay-time-status-renderer', el => el.textContent.trim());
-        let [views, uploadDate] = await video.$$eval('span.ytd-video-meta-block',
-            els => [els[0].textContent.replace('views', '').trim(), els[1].textContent.trim()]
-        );
+        const metadataInfo = await video.$eval('#metadata-line', el => el.textContent.trim())
+        if (!metadataInfo) continue
+
+        const metadata = await video.$$eval('#metadata-line > span', metas => { return metas.map(meta => meta.textContent) })
+
+        let views = metadata[0] ? metadata[0].replace('views', '').trim() : null
+        const uploadDate = metadata[1] ? metadata[1].trim() : null
+        console.log({ title })
+        console.log({ metadata })
+
+        // if (metadata.length !== 2) continue
+        // if (!views || !uploadDate) continue
+
         views = utils.unformatNumbers(views)
-
-        const data = { title, duration, views, uploadDate }
-        console.log({ data })
-
-        await Apify.pushData(data)
+        videos.push({ title, duration, views, uploadDate })
     }
+    await Apify.pushData({videos})
 
     // const maxRequested = (input.maxResults && input.maxResults > 0) ? input.maxResults : 999;
     // let userRequestFilled = false;
