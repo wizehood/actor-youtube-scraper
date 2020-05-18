@@ -26,8 +26,9 @@ exports.scrape = async (page, input) => {
     for (const video of ytVideos) {
         const titleElement = await video.$('#video-title');
         const title = await page.evaluate(title => title.textContent.trim(), titleElement)
-        let id = await page.evaluate(title => title.getAttribute('href').trim(), titleElement)
-        id = utils.getVideoId(id)
+        const href = await page.evaluate(title => title.getAttribute('href').trim(), titleElement)
+        const url = `https://www.youtube.com${href}`
+        const id = utils.getVideoId(href)
 
         const duration = await video.$eval('span.ytd-thumbnail-overlay-time-status-renderer', el => el.textContent.trim());
         const metadataInfo = await video.$eval('#metadata-line', el => el.textContent.trim())
@@ -42,7 +43,7 @@ exports.scrape = async (page, input) => {
         console.log({ metadata })
 
         views = utils.unformatNumbers(views)
-        videos.push({ title, id, duration, views, uploadDate })
+        videos.push({ title, url, id, duration, views, uploadDate })
     }
     await Apify.pushData(videos)
 };
