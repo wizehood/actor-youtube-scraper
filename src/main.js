@@ -52,7 +52,7 @@ Apify.main(async () => {
     };
 
     // add starting url
-    await requestQueue.addRequest({ url: startUrl, userData: { label: 'MASTER' } });
+    await requestQueue.addRequest({ url: startUrl + input.searchKeywords, userData: { label: 'MASTER' } });
 
     const pptrCrawler = new Apify.PuppeteerCrawler(pptrCrawlerOpts);
     await pptrCrawler.run();
